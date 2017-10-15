@@ -29,6 +29,8 @@ ACCESS_TOKEN_URL = 'https://api.yelp.com/oauth2/token'
 
 SEARCH_API_URL = 'https://api.yelp.com/v3/businesses/search'
 PHONE_SEARCH_API_URL = 'https://api.yelp.com/v3/businesses/search/phone'
+BUSINESS_MATCH_BEST_API_URL = 'https://api.yelp.com/v3/businesses/matches/best'
+BUSINESS_MATCH_LOOKUP_API_URL = 'https://api.yelp.com/v3/businesses/matches/best'
 TRANSACTION_SEARCH_API_URL = 'https://api.yelp.com/v3/transactions/{}/search'
 BUSINESS_API_URL = 'https://api.yelp.com/v3/businesses/{}'
 REVIEWS_API_URL = 'https://api.yelp.com/v3/businesses/{}/reviews'
@@ -81,6 +83,39 @@ class YelpAPI(object):
             raise ValueError('A valid phone number (parameter "phone") must be provided.')
 
         return self._query(PHONE_SEARCH_API_URL, **kwargs)
+
+    def business_match_query(self, **kwargs):
+        """
+            Query the Yelp Business Match API. Visit https://www.yelp.com/developers/documentation/v3/business_match
+            for documentation on the parameters and response body.
+
+            NOTE: Mandatory parameters "name", "city", and "state" must be provided.
+            NOTE: Defaults to type using the "best" search method. Can be set to "lookup" for the top 10 results.
+        """
+        if 'name' not in kwargs or not kwargs['name']:
+            raise ValueError('Valid business name (parameter "name") must be provided.')
+
+        if 'city' not in kwargs or not kwargs['city']:
+            raise ValueError('Valid city (parameter "city") must be provided.')
+
+        if 'state' not in kwargs or not kwargs['state']:
+            raise ValueError('Valid state (parameter "state") must be provided.')
+
+        if 'country' not in kwargs or not kwargs['country']:
+            kwargs['country'] = 'US'
+
+        if 'type' not in kwargs or not kwargs['type']:
+            kwargs['type'] = 'best'
+
+        if kwargs['type'] not in ('best', 'lookup'):
+            raise ValueError('Valid match type(parameter "type") must be provided. Accepted values: "best" or "lookup".')
+
+        if kwargs['type'] is 'best':
+            match_url = BUSINESS_MATCH_BEST_API_URL
+        elif kwargs['type'] is 'lookup':
+            match_url = BUSINESS_MATCH_LOOKUP_API_URL
+
+        return self._query(match_url.format(id), **kwargs)
 
     def transaction_search_query(self, transaction_type, **kwargs):
         """
