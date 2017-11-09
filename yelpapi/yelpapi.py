@@ -35,13 +35,14 @@ TRANSACTION_SEARCH_API_URL = 'https://api.yelp.com/v3/transactions/{}/search'
 BUSINESS_API_URL = 'https://api.yelp.com/v3/businesses/{}'
 REVIEWS_API_URL = 'https://api.yelp.com/v3/businesses/{}/reviews'
 AUTOCOMPLETE_API_URL = 'https://api.yelp.com/v3/autocomplete'
+GRAPHQL_API_URL = 'https://api.yelp.com/v3/graphql'
 
 
 class YelpAPI(object):
 
     """
         This class implements the complete Yelp Fusion API. It offers access to the following APIs:
-        
+
             * Search API - https://www.yelp.com/developers/documentation/v3/business_search
             * Phone Search API - https://www.yelp.com/developers/documentation/v3/business_search_phone
             * Transaction Search API - https://www.yelp.com/developers/documentation/v3/transactions_search
@@ -121,7 +122,7 @@ class YelpAPI(object):
         """
             Query the Yelp Transaction Search API. Visit https://www.yelp.com/developers/documentation/v3/transactions_search
             for documentation on the parameters and response body.
-            
+
             NOTE: A mandatory transaction type (parameter "transaction_type") must be provided.
         """
         if not transaction_type:
@@ -165,6 +166,26 @@ class YelpAPI(object):
 
         return self._query(AUTOCOMPLETE_API_URL, **kwargs)
 
+    def graphql_query(self, query, **kwargs):
+        """
+            Query the Yelp GraphQL API. Visit https://www.yelp.com/developers/graphql/guides/intro
+            for documentation on the parameters and response body.
+        """
+        if not query:
+            raise ValueError('A graphQL query must be provided.')
+
+        response = self._yelp_session.post(GRAPHQL_API_URL, headers={'Content-Type': 'application/graphql'}, data=query)
+
+        if not response.ok:
+            raise YelpAPI.YelpAPIError(response.text)
+
+        response_json = response.json()
+
+        if 'error' in response_json:
+            raise YelpAPI.YelpAPIError('{}: {}'.format(response_json['error']['code'], response_json['error']['description']))
+
+        return response_json
+
     @staticmethod
     def _get_clean_parameters(kwargs):
         """
@@ -179,7 +200,7 @@ class YelpAPI(object):
         """
         parameters = YelpAPI._get_clean_parameters(kwargs)
         response = self._yelp_session.get(url, params=parameters)
-        response_json = response.json() # it shouldn't happen, but this will raise a ValueError if the response isn't JSON
+        response_json = response.json()  # it shouldn't happen, but this will raise a ValueError if the response isn't JSON
 
         # Yelp can return one of many different API errors, so check for one of them.
         # The Yelp Fusion API does not yet have a complete list of errors, but this is on the TODO list; see
